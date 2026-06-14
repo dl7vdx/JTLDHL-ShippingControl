@@ -164,6 +164,18 @@ Die Nutzung erfolgt auf eigene Verantwortung. Es wird keine Haftung für Schäde
 
 ---
 
+## Lizenz
+
+Dieses Projekt steht unter der [CC BY-NC-ND 4.0 Lizenz](https://creativecommons.org/licenses/by-nc-nd/4.0/).
+
+- ✅ Nutzung und Weitergabe erlaubt
+- ❌ Keine kommerzielle Nutzung
+- ❌ Keine Veränderung oder Weiterveröffentlichung von Abwandlungen
+
+© 2026 dl7vdx
+
+---
+
 ## Unterstützung
 
 Wenn dir dieses Tool nützlich ist, freue ich mich über einen Kaffee ☕
