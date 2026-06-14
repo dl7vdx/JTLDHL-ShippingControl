@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}{{ shipment.tracking_number }} – ShippingTracker{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb + Zurück -->
+<div style="margin-bottom:16px;">
+    <a href="{{ url_for('dashboard') }}" style="color:#888; font-size:13px; text-decoration:none;">
+        ← Zurück zur Übersicht
+    </a>
+</div>
+
+<!-- Header-Karte -->
+<div class="card" style="{% if shipment.is_problematic %}border-left:4px solid var(--red){% elif shipment.is_packstation %}border-left:4px solid var(--warn){% elif shipment.is_delivered %}border-left:4px solid var(--ok){% endif %}">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+        <div>
+            <div style="font-size:11px; color:#888; margin-bottom:4px;">SENDUNGSNUMMER</div>
+            <div style="font-size:20px; font-weight:700; font-family:monospace;">
+                {{ shipment.tracking_number }}
+            </div>
+            <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                {% if shipment.is_problematic %}
+                    <span class="badge badge-error">⚠️ Problem erkannt</span>
+                {% endif %}
+                {% if shipment.is_packstation %}
+                    <span class="badge badge-warn">📦 In Packstation</span>
+                {% endif %}
+                {% if shipment.is_delivered %}
+                    <span class="badge badge-ok">✓ Zugestellt</span>
+                {% endif %}
+            </div>
+        </div>
+        <div style="text-align:right;">
+            {% if shipment.pdf_filename %}
+                <a href="{{ url_for('download_pdf', filename=shipment.pdf_filename) }}"
+                   class="btn btn-yellow">📄 PDF herunterladen</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Infogrid -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:16px; margin-top:20px;">
+        <div>
+            <div style="font-size:11px; color:#888;">AUFTRAG</div>
+            <div style="font-weight:600;">{{ shipment.order_number or '–' }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px; color:#888;">KUNDE</div>
+            <div style="font-weight:600;">{{ shipment.customer_name or '–' }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px; color:#888;">E-MAIL</div>
+            <div style="font-weight:600; font-size:13px;">{{ shipment.customer_email or '–' }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px; color:#888;">ZIELORT</div>
+            <div style="font-weight:600;">{{ shipment.recipient_city or '–' }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px; color:#888;">STATUS</div>
+            <div style="font-weight:600;">{{ shipment.current_status or 'Unbekannt' }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px; color:#888;">ZULETZT GEPRÜFT</div>
+            <div style="font-weight:600; font-size:12px;">{{ shipment.last_checked or 'Noch nicht' }}</div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+    <!-- Linke Spalte: Timeline + PDF Upload -->
+    <div>
+        <!-- Tracking-Timeline -->
+        <div class="card">
+            <h2>📍 Sendungsverlauf</h2>
+            {% if events %}
+            <ul class="timeline">
+                {% for ev in events %}
+                <li class="{% if loop.first %}latest{% endif %} {% if 'failure' in (ev.status_code or '') or 'returned' in (ev.status_code or '') %}problem{% endif %}">
+                    <div class="tl-time">{{ ev.event_time[:16] if ev.event_time else '–' }}</div>
+                    <div class="tl-desc">{{ ev.description or '–' }}</div>
+                    {% if ev.location %}
+                    <div class="tl-loc">📌 {{ ev.location }}</div>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color:#999; font-size:13px;">Noch keine Tracking-Events vorhanden.</p>
+            {% endif %}
+        </div>
+
+        <!-- PDF Upload -->
+        <div class="card">
+            <h2>📄 Sendungsnachweis (PDF)</h2>
+            {% if shipment.pdf_filename %}
+                <p style="margin-bottom:12px; font-size:13px;">
+                    ✓ <strong>{{ shipment.pdf_filename }}</strong> gespeichert
+                </p>
+                <a href="{{ url_for('download_pdf', filename=shipment.pdf_filename) }}"
+                   class="btn btn-yellow btn-sm">Herunterladen</a>
+                <span style="margin-left:8px; font-size:12px; color:#888;">oder neues PDF hochladen:</span>
+            {% else %}
+                <p style="color:#999; font-size:13px; margin-bottom:12px;">
+                    Noch kein PDF hochgeladen. Lade den Sendungsnachweis aus dem DHL Geschäftskundenportal herunter und speichere ihn hier.
+                </p>
+            {% endif %}
+            <form method="POST" action="{{ url_for('upload_pdf', tracking_number=shipment.tracking_number) }}"
+                  enctype="multipart/form-data" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+                <input type="file" name="pdf_file" accept=".pdf" required
+                       style="width:auto; flex:1; min-width:180px;">
+                <button type="submit" class="btn btn-outline btn-sm">Hochladen</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rechte Spalte: Mail -->
+    <div>
+        <div class="card">
+            <h2>✉️ E-Mail an Kunden</h2>
+
+            <!-- Template-Auswahl -->
+            <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                <button onclick="loadTemplate('delivery_failure')" class="btn btn-outline btn-sm">
+                    ⚠️ Zustellfehler
+                </button>
+                <button onclick="loadTemplate('packstation')" class="btn btn-outline btn-sm">
+                    📦 Packstation
+                </button>
+                <button onclick="loadTemplate('no_update')" class="btn btn-outline btn-sm">
+                    ⏳ Verzögerung
+                </button>
+            </div>
+
+            <form method="POST" action="{{ url_for('send_customer_mail', tracking_number=shipment.tracking_number) }}">
+                <div class="form-group">
+                    <label>Empfänger</label>
+                    <input type="email" name="to_address"
+                           value="{{ shipment.customer_email or '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Betreff</label>
+                    <input type="text" name="subject" id="mail-subject" required>
+                </div>
+                <div class="form-group">
+                    <label>Nachricht (HTML möglich)</label>
+                    <textarea name="body" id="mail-body" rows="8"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">E-Mail senden</button>
+            </form>
+        </div>
+
+        <!-- Mail-Log -->
+        {% if mail_log %}
+        <div class="card">
+            <h2>📋 Gesendete Mails</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Empfänger</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for m in mail_log %}
+                <tr>
+                    <td style="font-size:12px; color:#888;">{{ m.sent_at[:16] }}</td>
+                    <td style="font-size:12px;">{{ m.recipient }}</td>
+                    <td>
+                        {% if m.status == 'sent' %}
+                            <span class="badge badge-ok">✓ Gesendet</span>
+                        {% else %}
+                            <span class="badge badge-error">✗ Fehler</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Template-Daten (JS) -->
+<script>
+const templates = {{ templates | tojson }};
+
+function loadTemplate(key) {
+    const tpl = templates[key];
+    if (!tpl) return;
+    document.getElementById('mail-subject').value = tpl.subject;
+    document.getElementById('mail-body').value = tpl.body.trim();
+    // Kurzes visuelles Feedback
+    const ta = document.getElementById('mail-body');
+    ta.style.borderColor = 'var(--dark)';
+    setTimeout(() => ta.style.borderColor = '', 600);
+}
+</script>
+{% endblock %}

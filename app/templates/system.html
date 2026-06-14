@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}System – ShippingTracker{% endblock %}
+{% block content %}
+<h1 style="font-size:20px; font-weight:700; margin-bottom:20px;">Systemstatus</h1>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:20px;">
+    <div class="card">
+        <h2>🗄️ JTL-Wawi Verbindung</h2>
+        {% if wawi_ok %}
+            <span class="badge badge-ok" style="font-size:13px; padding:6px 12px;">✓ Verbunden</span>
+        {% else %}
+            <span class="badge badge-error" style="font-size:13px; padding:6px 12px;">✗ Nicht erreichbar</span>
+        {% endif %}
+        <p style="margin-top:10px; font-size:12px; color:#888;">{{ wawi_msg }}</p>
+        {% if not wawi_ok %}
+        <p style="margin-top:8px; font-size:12px; color:var(--warn);">
+            → VPN aktiv? Firewall-Regel für Port 1433 (MSSQL) vorhanden?
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>🔄 Polling</h2>
+        <p style="font-size:13px; color:#666; margin-bottom:12px;">
+            Manuellen Polling-Lauf starten (DHL-Status + Wawi-Sync):
+        </p>
+        <button onclick="triggerPoll(this)" class="btn btn-primary btn-sm">▶ Jetzt ausführen</button>
+    </div>
+
+    <div class="card">
+        <h2>📁 Konfiguration</h2>
+        <p style="font-size:12px; color:#888; line-height:1.8;">
+            Einstellungen: <code>config.py</code><br>
+            Datenbank: <code>data/tracker.db</code><br>
+            Log-Datei: <code>data/tracker.log</code><br>
+            PDF-Ablage: <code>uploads/</code>
+        </p>
+    </div>
+</div>
+
+<div class="card" style="margin-top:20px;">
+    <h2>📋 Windows Task Scheduler – Polling automatisieren</h2>
+    <p style="font-size:13px; color:#666; margin-bottom:12px;">
+        Damit das Tool automatisch alle 2 Stunden die DHL-Status abruft, erstelle
+        eine geplante Aufgabe in Windows. Öffne dazu eine Kommandozeile als Administrator
+        und führe folgenden Befehl aus:
+    </p>
+    <pre style="background:var(--light); padding:12px; border-radius:var(--radius); font-size:12px; overflow-x:auto; border:1px solid var(--border);">schtasks /create /tn "JTL-ShippingTracker-Poll" /tr "python C:\jtl-tracker\app\scheduler.py" /sc hourly /mo 2 /f</pre>
+    <p style="font-size:12px; color:#888; margin-top:8px;">
+        Pfad anpassen falls das Tool woanders installiert ist.
+    </p>
+</div>
+
+<script>
+function triggerPoll(btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Läuft...';
+    fetch('/api/trigger_poll', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'started') {
+                btn.textContent = '✓ Gestartet';
+            } else {
+                btn.textContent = '❌ Fehler: ' + (data.message || '');
+                btn.disabled = false;
+            }
+        })
+        .catch(() => { btn.textContent = '❌ Fehler'; btn.disabled = false; });
+}
+</script>
+{% endblock %}

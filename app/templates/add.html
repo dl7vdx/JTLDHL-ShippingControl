@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Sendung hinzufügen – ShippingTracker{% endblock %}
+{% block content %}
+<div style="max-width:560px;">
+    <a href="{{ url_for('dashboard') }}" style="color:#888; font-size:13px; text-decoration:none;">
+        ← Zurück
+    </a>
+    <h1 style="font-size:20px; font-weight:700; margin:16px 0;">Sendung manuell hinzufügen</h1>
+    <p style="color:#888; font-size:13px; margin-bottom:20px;">
+        Sendungen werden automatisch aus JTL-Wawi synchronisiert. Hier kannst du eine Sendung
+        manuell erfassen, falls die Synchronisation nicht verfügbar ist.
+    </p>
+    <div class="card">
+        <form method="POST" action="{{ url_for('add_shipment') }}">
+            <div class="form-group">
+                <label>Sendungsnummer *</label>
+                <input type="text" name="tracking_number" placeholder="z.B. 00340434161094007774" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Auftragsnummer</label>
+                <input type="text" name="order_number" placeholder="z.B. A-2024-00123">
+            </div>
+            <div class="form-group">
+                <label>Kundenname</label>
+                <input type="text" name="customer_name" placeholder="Max Mustermann">
+            </div>
+            <div class="form-group">
+                <label>Kunden-E-Mail</label>
+                <input type="email" name="customer_email" placeholder="kunde@beispiel.de">
+            </div>
+            <div class="form-group">
+                <label>Zielort</label>
+                <input type="text" name="recipient_city" placeholder="Berlin">
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button type="submit" class="btn btn-primary">Sendung speichern</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Abbrechen</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

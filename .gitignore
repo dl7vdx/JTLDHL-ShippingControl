@@ -1,0 +1,38 @@
+# Konfiguration mit Zugangsdaten – niemals committen
+config.py
+
+# Datenbank und Logs
+data/tracker.db
+data/tracker.log
+data/
+
+# Uploads (PDF-Liefernachweise)
+uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtuelle Umgebung
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Claude
+.claude/

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – ShippingTracker{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:gap:8px;">
+    <h1 style="font-size:20px; font-weight:700;">Sendungsübersicht</h1>
+    <div style="display:flex; gap:8px;">
+        <button onclick="triggerPoll(this)" class="btn btn-outline btn-sm">🔄 Jetzt abfragen</button>
+        <a href="{{ url_for('add_shipment') }}" class="btn btn-primary btn-sm">+ Sendung hinzufügen</a>
+    </div>
+</div>
+
+<!-- Suche + Zeitraum -->
+<div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+    <form method="get" style="display:flex; gap:6px; flex:1; min-width:220px;">
+        <input type="hidden" name="filter" value="{{ current_filter }}">
+        <input type="hidden" name="period" value="{{ current_period }}">
+        <input type="text" name="search" value="{{ current_search }}"
+               placeholder="Sendungsnr., Auftrag oder Kunde…"
+               style="flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; background:var(--surface); color:var(--text);">
+        <button type="submit" class="btn btn-outline btn-sm">Suchen</button>
+        {% if current_search %}
+            <a href="?filter={{ current_filter }}&period={{ current_period }}" class="btn btn-outline btn-sm">✕</a>
+        {% endif %}
+    </form>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        {% set pbase = '?filter=' ~ current_filter ~ '&search=' ~ current_search ~ '&period=' %}
+        <a href="{{ pbase }}" class="btn btn-sm {% if not current_period %}btn-primary{% else %}btn-outline{% endif %}">Alle Zeit</a>
+        <a href="{{ pbase }}today" class="btn btn-sm {% if current_period == 'today' %}btn-primary{% else %}btn-outline{% endif %}">Heute</a>
+        <a href="{{ pbase }}yesterday" class="btn btn-sm {% if current_period == 'yesterday' %}btn-primary{% else %}btn-outline{% endif %}">Gestern</a>
+        <a href="{{ pbase }}this_week" class="btn btn-sm {% if current_period == 'this_week' %}btn-primary{% else %}btn-outline{% endif %}">Diese Woche</a>
+        <a href="{{ pbase }}last_7" class="btn btn-sm {% if current_period == 'last_7' %}btn-primary{% else %}btn-outline{% endif %}">7 Tage</a>
+        <a href="{{ pbase }}last_30" class="btn btn-sm {% if current_period == 'last_30' %}btn-primary{% else %}btn-outline{% endif %}">30 Tage</a>
+    </div>
+</div>
+
+<!-- Filter-Tabs -->
+<div class="filter-tabs">
+    <a href="?filter=all" class="filter-tab {% if current_filter == 'all' %}active{% endif %}">
+        Alle <span class="count">{{ counts.all }}</span>
+    </a>
+    <a href="?filter=active" class="filter-tab {% if current_filter == 'active' %}active{% endif %}">
+        Aktiv <span class="count">{{ counts.active }}</span>
+    </a>
+    <a href="?filter=problematic" class="filter-tab {% if current_filter == 'problematic' %}active{% endif %}" style="{% if counts.problematic > 0 %}color:#D40511{% endif %}">
+        ⚠️ Probleme <span class="count">{{ counts.problematic }}</span>
+    </a>
+    <a href="?filter=packstation" class="filter-tab {% if current_filter == 'packstation' %}active{% endif %}">
+        📦 Packstation <span class="count">{{ counts.packstation }}</span>
+    </a>
+    <a href="?filter=transit" class="filter-tab {% if current_filter == 'transit' %}active{% endif %}">
+        🚚 Unterwegs <span class="count">{{ counts.transit }}</span>
+    </a>
+    <a href="?filter=pre-transit" class="filter-tab {% if current_filter == 'pre-transit' %}active{% endif %}">
+        📋 Vorbereitung <span class="count">{{ counts['pre-transit'] }}</span>
+    </a>
+    <a href="?filter=delivered" class="filter-tab {% if current_filter == 'delivered' %}active{% endif %}">
+        ✓ Zugestellt <span class="count">{{ counts.delivered }}</span>
+    </a>
+    <a href="?filter=unknown" class="filter-tab {% if current_filter == 'unknown' %}active{% endif %}">
+        ❓ Unbekannt <span class="count">{{ counts.unknown }}</span>
+    </a>
+</div>
+
+<!-- Tabelle -->
+<div class="card" style="padding:0; overflow:hidden;">
+    {% if shipments %}
+    <table>
+        <thead>
+            <tr>
+                <th>Sendungsnummer</th>
+                <th>Auftrag</th>
+                <th class="hide-mobile">Kunde</th>
+                <th>Status</th>
+                <th class="hide-mobile">Zuletzt geprüft</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for s in shipments %}
+            {% set detail_url = url_for('shipment_detail', tracking_number=s.tracking_number) %}
+            <tr onclick="window.location='{{ detail_url }}'" style="cursor:pointer;">
+                <td>
+                    <a href="{{ detail_url }}"
+                       onclick="event.stopPropagation()"
+                       style="font-family:monospace; font-size:13px; color:inherit; text-decoration:none; font-weight:600;">
+                        {{ s.tracking_number }}
+                    </a>
+                    {% if s.pdf_filename %}
+                        <a href="{{ url_for('download_pdf', filename=s.pdf_filename) }}"
+                           onclick="event.stopPropagation()"
+                           title="PDF herunterladen" style="margin-left:6px; font-size:12px;">📄</a>
+                    {% endif %}
+                </td>
+                <td style="color:#666;">{{ s.order_number or '–' }}</td>
+                <td class="hide-mobile">{{ s.customer_name or '–' }}</td>
+                <td>
+                    {% if s.is_problematic %}
+                        <span class="badge badge-error">⚠️ Problem</span>
+                    {% elif s.is_delivered %}
+                        <span class="badge badge-ok">✓ Zugestellt</span>
+                    {% elif s.is_packstation %}
+                        {% set days = packstation_days.get(s.tracking_number) %}
+                        {% if days is not none %}
+                            {% if days >= 5 %}
+                                <span class="badge" style="background:#D40511; color:#fff;">📦 Packstation · {{ days }}T</span>
+                            {% elif days >= 3 %}
+                                <span class="badge" style="background:#f59e0b; color:#fff;">📦 Packstation · {{ days }}T</span>
+                            {% else %}
+                                <span class="badge" style="background:#16a34a; color:#fff;">📦 Packstation · {{ days }}T</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge badge-warn">📦 Packstation</span>
+                        {% endif %}
+                    {% elif s.current_status == 'transit' %}
+                        {% set days = transit_days.get(s.tracking_number) %}
+                        {% if days is not none %}
+                            {% if days >= 4 %}
+                                <span class="badge" style="background:#D40511; color:#fff;">🚚 Unterwegs · {{ days }}T</span>
+                            {% elif days >= 3 %}
+                                <span class="badge" style="background:#f59e0b; color:#fff;">🚚 Unterwegs · {{ days }}T</span>
+                            {% else %}
+                                <span class="badge" style="background:#16a34a; color:#fff;">🚚 Unterwegs · {{ days }}T</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge badge-info">🚚 Unterwegs</span>
+                        {% endif %}
+                    {% elif s.current_status == 'pre-transit' %}
+                        <span class="badge badge-gray">📋 Vorbereitung</span>
+                    {% else %}
+                        <span class="badge badge-gray">{{ s.current_status or 'Unbekannt' }}</span>
+                    {% endif %}
+                    {% if stale_hours.get(s.tracking_number) %}
+                        <span title="Kein Update seit {{ stale_hours[s.tracking_number] }}h"
+                              style="margin-left:6px; font-size:13px; cursor:default;">🕐</span>
+                    {% endif %}
+                </td>
+                <td class="hide-mobile" style="color:#999; font-size:12px;">
+                    {{ s.last_checked | relative_time if s.last_checked else 'Noch nicht' }}
+                </td>
+                <td onclick="event.stopPropagation()">
+                    <a href="{{ detail_url }}" class="btn btn-outline btn-sm">Details →</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding:48px; text-align:center; color:#999;">
+        <div style="font-size:32px; margin-bottom:8px;">📭</div>
+        {% if current_search %}
+            <p>Keine Sendungen für <strong style="color:var(--text);">„{{ current_search }}"</strong> gefunden.</p>
+            <a href="?filter={{ current_filter }}&period={{ current_period }}" style="color:var(--info); font-size:13px; margin-top:8px; display:inline-block;">
+                Suche zurücksetzen
+            </a>
+        {% else %}
+            <p>Keine Sendungen gefunden.</p>
+            {% if current_filter != 'all' or current_period %}
+                <a href="?filter=all" style="color:var(--info); font-size:13px; margin-top:8px; display:inline-block;">
+                    Alle anzeigen
+                </a>
+            {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function triggerPoll(btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Wird abgefragt...';
+    fetch('/api/trigger_poll', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'started') {
+                btn.textContent = '✓ Gestartet – Seite lädt in 10s neu';
+                setTimeout(() => location.reload(), 10000);
+            } else {
+                btn.textContent = '❌ Fehler';
+                btn.disabled = false;
+            }
+        })
+        .catch(() => {
+            btn.textContent = '❌ Fehler';
+            btn.disabled = false;
+        });
+}
+</script>
+{% endblock %}
