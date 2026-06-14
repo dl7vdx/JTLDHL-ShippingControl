@@ -1,6 +1,6 @@
 # JTLDHL-ShippingControl
 
-Web-Dashboard zur DHL-Sendungsverfolgung für JTL-Wawi Nutzer – ohne JTL Track & Trace und ohne JTL REST-API.
+Web-Dashboard zur DHL-Sendungsverfolgung für JTL-Wawi Nutzer.
 
 Das Tool liest Sendungsnummern direkt aus der JTL-Wawi Datenbank (MSSQL), fragt den Status über die DHL Shipment Tracking API ab und zeigt alles in einem übersichtlichen Web-Dashboard an.
 
