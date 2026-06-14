@@ -148,6 +148,22 @@ jtl-trackerNG/
 
 ---
 
+## Kompatibilität
+
+Getestet mit **JTL-Wawi 1.11.11** und der **DHL Shipment Tracking Unified API** (Production Europe).
+
+---
+
+## Rechtlicher Hinweis
+
+Dieses Projekt ist ein unabhängiges Open-Source-Tool und steht in keiner Verbindung zur JTL-Software GmbH oder der Deutsche Post DHL Group.
+
+„JTL" und „JTL-Wawi" sind eingetragene Marken der JTL-Software GmbH. „DHL" ist eine eingetragene Marke der Deutsche Post DHL Group. Alle Markennamen werden ausschließlich zur sachlichen Beschreibung der Kompatibilität verwendet.
+
+Die Nutzung erfolgt auf eigene Verantwortung. Es wird keine Haftung für Schäden übernommen, die durch den Einsatz dieses Tools entstehen.
+
+---
+
 ## Unterstützung
 
 Wenn dir dieses Tool nützlich ist, freue ich mich über einen Kaffee ☕
