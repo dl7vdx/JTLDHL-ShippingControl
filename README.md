@@ -13,7 +13,7 @@ Kein manuelles Tracking mehr. Kein Wechsel zwischen DHL-Portal und Warenwirtscha
 - Windows 10/11 oder Windows Server
 - Python 3.11+
 - ODBC Driver 17 for SQL Server
-- VPN-Verbindung zum JTL-Wawi Server
+- Netzwerkzugriff auf den JTL-Wawi Datenbankserver (lokal oder per VPN)
 - DHL API Key (Shipment Tracking Unified, Production Europe) aus dem [DHL Developer Portal](https://developer.dhl.com)
 
 ---
