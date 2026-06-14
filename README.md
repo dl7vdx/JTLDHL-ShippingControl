@@ -172,7 +172,7 @@ Dieses Projekt steht unter der [CC BY-NC-ND 4.0 Lizenz](https://creativecommons.
 - ❌ Keine kommerzielle Nutzung
 - ❌ Keine Veränderung oder Weiterveröffentlichung von Abwandlungen
 
-© 2026 dl7vdx
+© 2026 Ron – [u238.de](https://u238.de)
 
 ---
 
