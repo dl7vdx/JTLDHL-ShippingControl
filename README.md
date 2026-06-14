@@ -44,6 +44,14 @@ Dann `config.py` öffnen und ausfüllen:
 
 > **Wichtig:** Die DHL Authentifizierung läuft ausschließlich über den Header `DHL-API-Key`. Kein OAuth2, kein Basic Auth.
 
+> **Sicherheitsempfehlung:** Das Tool führt ausschließlich lesende `SELECT`-Abfragen auf der JTL-Wawi Datenbank aus – es werden keine Daten verändert. Empfohlen wird dennoch ein dedizierter SQL-Benutzer mit reinen Leserechten (`db_datareader`) statt des `sa`-Kontos:
+> ```sql
+> CREATE LOGIN jtl_tracking_reader WITH PASSWORD = 'SicheresPasswort';
+> USE eazybusiness;
+> CREATE USER jtl_tracking_reader FOR LOGIN jtl_tracking_reader;
+> EXEC sp_addrolemember 'db_datareader', 'jtl_tracking_reader';
+> ```
+
 **3. Dashboard starten**
 
 ```cmd
