@@ -145,3 +145,11 @@ jtl-trackerNG/
 - **config.py** enthält sensible Zugangsdaten – niemals in Git einchecken (ist in `.gitignore` ausgeschlossen).
 - Für externen Zugriff empfiehlt sich ein Reverse-Proxy (nginx/Caddy) mit HTTPS.
 - Regelmäßige Backups des `data/`-Ordners empfohlen.
+
+---
+
+## Unterstützung
+
+Wenn dir dieses Tool nützlich ist, freue ich mich über einen Kaffee ☕
+
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/scavenger6)
