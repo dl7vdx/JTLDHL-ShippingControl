@@ -1,8 +1,10 @@
 # JTLDHL-ShippingControl
 
-Web-Dashboard zur DHL-Sendungsverfolgung für JTL-Wawi Nutzer.
+Wer täglich Pakete versendet, kennt das Problem: Sendungen verschwinden im Nirgendwo, Kunden melden sich wegen ausbleibender Lieferungen, Pakete verstauben wochenlang in Packstationen – und man bemerkt es zu spät.
 
-Das Tool liest Sendungsnummern direkt aus der JTL-Wawi Datenbank (MSSQL), fragt den Status über die DHL Shipment Tracking API ab und zeigt alles in einem übersichtlichen Web-Dashboard an.
+**JTLDHL-ShippingControl** löst genau das. Das Tool synchronisiert sich automatisch mit der JTL-Wawi Datenbank, ruft für jede Sendung den aktuellen DHL-Status ab und zeigt alles in einem übersichtlichen Web-Dashboard an – mit Ampelsystem, Frühwarnung und direktem Kundenkontakt aus dem Browser heraus.
+
+Kein manuelles Tracking mehr. Kein Wechsel zwischen DHL-Portal und Warenwirtschaft. Alles an einem Ort.
 
 ---
 
@@ -52,32 +54,58 @@ Erreichbar unter: **http://localhost:5000**
 
 ---
 
-## Features
+## Was das Tool leistet
 
-### Dashboard
-- Sendungsübersicht mit Echtzeit-Status aus der DHL API
-- **Status-Filter**: Alle, Aktiv, Probleme, Packstation, Unterwegs, Vorbereitung, Zugestellt, Unbekannt
-- **Zeitraum-Filter**: Heute, Gestern, Diese Woche, 7 Tage, 30 Tage
-- **Suche** nach Sendungsnummer, Auftragsnummer oder Kundenname
-- Klickbare Tabellenzeilen für schnellen Zugriff auf die Detailansicht
+### Frühwarnsystem mit Ampel
 
-### Ampel-System
-- **Unterwegs**: Grün (1–2 Tage) → Gelb (3 Tage) → Rot (ab 4 Tage)
-- **Packstation**: Grün (1–2 Tage) → Gelb (3–4 Tage) → Rot (ab 5 Tage)
-- **Stillstand-Warnung** 🕐: Sendung nicht zugestellt, kein neues Event seit 48h
+Jede Sendung bekommt eine farbliche Bewertung – direkt im Dashboard sichtbar, ohne in Details klicken zu müssen:
 
-### Automatisierung
-- Synchronisiert neue Sendungen automatisch aus der JTL-Wawi Datenbank
-- Pollt DHL-Status für alle offenen Sendungen (empfohlen: alle 2h per Windows Task Scheduler)
-- Ungecheckte Sendungen werden bevorzugt abgefragt
-- Bei Rate Limit wird das Polling sauber abgebrochen und beim nächsten Lauf fortgesetzt
+**Sendungen unterwegs:**
+- 🟢 1–2 Tage → alles normal
+- 🟡 3 Tage → Aufmerksamkeit empfohlen
+- 🔴 ab 4 Tage → Handlungsbedarf, möglicherweise Lieferproblem
+
+**Sendungen in der Packstation:**
+- 🟢 1–2 Tage → Kunde hat noch Zeit
+- 🟡 3–4 Tage → Kunde sollte erinnert werden
+- 🔴 ab 5 Tage → dringend, Paket wird bald retourniert
+
+Zusätzlich: Sendungen ohne jede Statusänderung seit mehr als 48 Stunden werden mit einem ⏰-Symbol markiert – ein frühes Zeichen für Zustellprobleme, bevor der Kunde sich meldet.
+
+### Direkte Kundenkommunikation
+
+Aus der Detailansicht jeder Sendung kann direkt eine E-Mail an den Kunden verfasst und versendet werden – mit vorausgefüllten Templates für die häufigsten Szenarien:
+
+- **Zustellfehler** – Paket konnte nicht zugestellt werden
+- **Packstation** – Erinnerung zur Abholung mit Fristhinweis
+- **Verzögerung** – proaktive Information bei ausbleibenden Updates
+
+Der Kundenname wird automatisch aus JTL-Wawi übernommen, sodass jede Mail persönlich adressiert ist. Alle versendeten Mails werden pro Sendung protokolliert.
+
+### Übersicht und Filterung
+
+- **Status-Filter**: Alle · Aktiv · Probleme · Packstation · Unterwegs · Vorbereitung · Zugestellt · Unbekannt
+- **Zeitraum-Filter**: Heute · Gestern · Diese Woche · 7 Tage · 30 Tage
+- **Volltextsuche** nach Sendungsnummer, Auftragsnummer oder Kundenname
+- Alle Filter sind kombinierbar
+- Relative Zeitangaben ("vor 2 Std.", "vor 3 Tagen") statt roher Datumsstempel
+
+### Automatische Synchronisation
+
+Das Tool läuft im Hintergrund und hält sich selbst aktuell:
+
+- Neue Sendungen werden automatisch aus der JTL-Wawi Datenbank (MSSQL) geladen
+- DHL-Status wird regelmäßig per Windows Task Scheduler abgerufen (empfohlen: alle 2h)
+- Bereits zugestellte Sendungen werden nicht erneut abgefragt – spart API-Kontingent
+- Ungecheckte Sendungen haben Vorrang beim Polling
+- Bei Erreichen des API-Tageslimits wird sauber abgebrochen und beim nächsten Lauf fortgesetzt
 
 ### Weitere Funktionen
-- Sendungsverlauf auf Deutsch (via DHL API Sprachparameter)
-- PDF-Upload für manuelle Liefernachweise pro Sendung
-- E-Mail-Versand an Kunden mit vorausgefüllten Templates (Zustellfehler, Packstation, Verzögerung)
-- Mail-Log pro Sendung
-- Relatives Zeitformat ("vor 2 Std." statt rohem Datum)
+
+- Sendungsverlauf auf Deutsch direkt aus der DHL API
+- PDF-Upload für manuelle Liefernachweise, pro Sendung abrufbar
+- Passwortgeschütztes Web-Login
+- Läuft lokal auf dem eigenen Rechner oder Server – keine Cloud, keine externen Dienste
 
 ---
 
