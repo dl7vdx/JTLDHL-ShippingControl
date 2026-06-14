@@ -67,12 +67,6 @@ Erreichbar unter: **http://localhost:5000**
 ![Dashboard Übersicht](screenshots/dashboard.png)
 *Sendungsübersicht mit Ampelsystem und Statusfiltern*
 
-![Unterwegs Ampel](screenshots/transit.png)
-*Farbliche Anzeige wie lange eine Sendung bereits unterwegs ist*
-
-![Packstation Warnung](screenshots/packstation.png)
-*Frühwarnung bei Sendungen die zu lange in der Packstation liegen*
-
 ![Detailansicht](screenshots/detail.png)
 *Sendungsverlauf und E-Mail-Versand direkt aus dem Dashboard*
 
