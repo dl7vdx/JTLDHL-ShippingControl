@@ -1,63 +1,90 @@
-# JTL ShippingTracker
+# JTLDHL-ShippingControl
 
-DHL Sendungsverfolgung für JTL-Wawi Geschäftskunden – als eigenständiges Web-Tool,
-ohne JTL-REST-API und ohne DHL-Versandkosten für die Tracking-API.
+Web-Dashboard zur DHL-Sendungsverfolgung für JTL-Wawi Nutzer – ohne JTL Track & Trace und ohne JTL REST-API.
+
+Das Tool liest Sendungsnummern direkt aus der JTL-Wawi Datenbank (MSSQL), fragt den Status über die DHL Shipment Tracking API ab und zeigt alles in einem übersichtlichen Web-Dashboard an.
 
 ---
 
 ## Voraussetzungen
 
 - Windows 10/11 oder Windows Server
-- Python 3.11+ (https://python.org)
-- ODBC Driver 17 for SQL Server (https://aka.ms/odbc17)
-- VPN-Verbindung zum JTL-Wawi-Server muss aktiv sein
-- DHL API Key (Production Europe) aus dem DHL Developer Portal
+- Python 3.11+
+- ODBC Driver 17 for SQL Server
+- VPN-Verbindung zum JTL-Wawi Server
+- DHL API Key (Shipment Tracking Unified, Production Europe) aus dem [DHL Developer Portal](https://developer.dhl.com)
 
 ---
 
 ## Installation
 
-### 1. Python-Pakete installieren
+**1. Python-Pakete installieren**
 
 ```cmd
-cd C:\jtl-tracker
 pip install -r requirements.txt
 ```
 
-### 2. Konfiguration anpassen
+**2. Konfiguration anlegen**
 
-Öffne `config.py` und trage ein:
+```cmd
+copy config.example.py config.py
+```
+
+Dann `config.py` öffnen und ausfüllen:
 
 | Einstellung | Beschreibung |
 |---|---|
-| `DHL_API_KEY` | Dein DHL API Key aus dem Developer Portal |
-| `DHL_API_SECRET` | Dein DHL API Secret |
-| `WAWI_CONNECTION_STRING` | IP/Hostname des MSSQL-Servers + Zugangsdaten |
-| `SMTP_*` | Zugangsdaten deines E-Mail-Providers |
-| `DASHBOARD_PASSWORD` | Sicheres Passwort für das Web-Login |
+| `DHL_API_KEY` | API Key aus dem DHL Developer Portal |
+| `WAWI_CONNECTION_STRING` | MSSQL Verbindungsstring zur JTL-Wawi |
+| `SMTP_*` | Zugangsdaten für E-Mail-Versand |
+| `DASHBOARD_USER` / `DASHBOARD_PASSWORD` | Login für das Web-Dashboard |
 | `SECRET_KEY` | Zufälliger String (mind. 32 Zeichen) |
 
-### 3. Ersten Start durchführen
+> **Wichtig:** Die DHL Authentifizierung läuft ausschließlich über den Header `DHL-API-Key`. Kein OAuth2, kein Basic Auth.
+
+**3. Dashboard starten**
 
 ```cmd
 start.bat
 ```
 
-Das Dashboard ist dann erreichbar unter: **http://localhost:5000**
-
-Von außen/unterwegs: Port 5000 in der Windows Firewall freigeben und
-die externe IP deines Rechners verwenden. Für Produktionsbetrieb
-empfiehlt sich ein Reverse-Proxy (nginx) mit HTTPS.
+Erreichbar unter: **http://localhost:5000**
 
 ---
 
-## Automatisches Polling einrichten (Windows Task Scheduler)
+## Features
 
-Damit DHL-Status automatisch alle 2 Stunden abgerufen wird,
-öffne eine Kommandozeile **als Administrator** und führe aus:
+### Dashboard
+- Sendungsübersicht mit Echtzeit-Status aus der DHL API
+- **Status-Filter**: Alle, Aktiv, Probleme, Packstation, Unterwegs, Vorbereitung, Zugestellt, Unbekannt
+- **Zeitraum-Filter**: Heute, Gestern, Diese Woche, 7 Tage, 30 Tage
+- **Suche** nach Sendungsnummer, Auftragsnummer oder Kundenname
+- Klickbare Tabellenzeilen für schnellen Zugriff auf die Detailansicht
+
+### Ampel-System
+- **Unterwegs**: Grün (1–2 Tage) → Gelb (3 Tage) → Rot (ab 4 Tage)
+- **Packstation**: Grün (1–2 Tage) → Gelb (3–4 Tage) → Rot (ab 5 Tage)
+- **Stillstand-Warnung** 🕐: Sendung nicht zugestellt, kein neues Event seit 48h
+
+### Automatisierung
+- Synchronisiert neue Sendungen automatisch aus der JTL-Wawi Datenbank
+- Pollt DHL-Status für alle offenen Sendungen (empfohlen: alle 2h per Windows Task Scheduler)
+- Ungecheckte Sendungen werden bevorzugt abgefragt
+- Bei Rate Limit wird das Polling sauber abgebrochen und beim nächsten Lauf fortgesetzt
+
+### Weitere Funktionen
+- Sendungsverlauf auf Deutsch (via DHL API Sprachparameter)
+- PDF-Upload für manuelle Liefernachweise pro Sendung
+- E-Mail-Versand an Kunden mit vorausgefüllten Templates (Zustellfehler, Packstation, Verzögerung)
+- Mail-Log pro Sendung
+- Relatives Zeitformat ("vor 2 Std." statt rohem Datum)
+
+---
+
+## Automatisches Polling (Windows Task Scheduler)
 
 ```cmd
-schtasks /create /tn "JTL-ShippingTracker-Poll" /tr "python C:\jtl-tracker\app\scheduler.py" /sc hourly /mo 2 /f
+schtasks /create /tn "JTLDHL-ShippingControl-Poll" /tr "python C:\Pfad\zum\Projekt\app\scheduler.py" /sc hourly /mo 2 /f
 ```
 
 ---
@@ -65,51 +92,28 @@ schtasks /create /tn "JTL-ShippingTracker-Poll" /tr "python C:\jtl-tracker\app\s
 ## Projektstruktur
 
 ```
-jtl-tracker/
-├── config.py              ← Alle Einstellungen hier
+jtl-trackerNG/
+├── config.py              ← Zugangsdaten (nicht in Git!)
+├── config.example.py      ← Vorlage für config.py
 ├── requirements.txt
 ├── start.bat              ← Web-Dashboard starten
 ├── app/
-│   ├── web.py             ← Flask Web-App (Dashboard)
-│   ├── scheduler.py       ← Polling-Lauf (Task Scheduler)
-│   ├── dhl_tracker.py     ← DHL Tracking API Client
+│   ├── web.py             ← Flask Web-App
+│   ├── scheduler.py       ← Polling-Lauf
+│   ├── dhl_tracker.py     ← DHL API Client
 │   ├── wawi_reader.py     ← JTL-Wawi MSSQL Anbindung
-│   ├── mailer.py          ← E-Mail-Versand + Templates
-│   ├── db.py              ← SQLite Datenbank
+│   ├── mailer.py          ← E-Mail-Versand
+│   ├── db.py              ← SQLite Datenbankschicht
 │   └── templates/         ← HTML-Templates
-├── data/
-│   ├── tracker.db         ← SQLite Datenbank (auto-erstellt)
-│   └── tracker.log        ← Log-Datei
-└── uploads/               ← PDF-Sendungsnachweise
+├── data/                  ← SQLite DB + Logs (nicht in Git)
+└── uploads/               ← PDF-Liefernachweise (nicht in Git)
 ```
 
 ---
 
-## Features
+## Hinweise
 
-- **Sendungsübersicht** mit Ampel-Status (OK / Problem / Packstation)
-- **Automatische Problemerkennung**: Zustellfehler, Packstation, keine Updates > 48h
-- **JTL-Wawi Sync**: Neue Sendungen werden automatisch aus der Wawi-DB geladen
-- **PDF-Upload**: Sendungsnachweise manuell hochladen und pro Sendung abrufbar
-- **E-Mail-Templates**: Vorausgefüllte Mails für Zustellfehler, Packstation, Verzögerung
-- **Mail-Log**: Übersicht aller gesendeten Kunden-Mails
-- **Manueller Polling-Trigger**: Direkt im Dashboard per Knopfdruck
-
----
-
-## Bekannte Einschränkungen
-
-- PDF-Sendungsnachweise müssen manuell aus dem DHL-Portal heruntergeladen
-  und über den Upload-Button im Dashboard hinzugefügt werden.
-  Eine automatische API-Abholung bietet DHL nicht an.
-
-- Die DHL Tracking API hat nach Registrierung zunächst Status `pending`.
-  Die Freischaltung dauert meist einige Stunden bis 1 Werktag.
-
----
-
-## Sicherheitshinweise
-
-- `config.py` enthält sensible Zugangsdaten – niemals in Git einchecken
-- Für Zugriff von außen: HTTPS via nginx/Caddy einrichten
-- Regelmäßige Backups der `data/`-Ordners empfohlen
+- **DHL Rate Limit**: Der kostenlose API-Zugang erlaubt 250 Anfragen/Tag. Bereits zugestellte Sendungen werden nicht erneut abgefragt.
+- **config.py** enthält sensible Zugangsdaten – niemals in Git einchecken (ist in `.gitignore` ausgeschlossen).
+- Für externen Zugriff empfiehlt sich ein Reverse-Proxy (nginx/Caddy) mit HTTPS.
+- Regelmäßige Backups des `data/`-Ordners empfohlen.
