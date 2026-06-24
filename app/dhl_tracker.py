@@ -24,6 +24,15 @@ PACKSTATION_KEYWORDS = [
     "paket station",
 ]
 
+FILIALE_KEYWORDS = [
+    "ihrer filiale",
+    "filiale bereit",
+    "postfiliale bereit",
+    "zur abholung in der filiale",
+    "abholung in der filiale",
+    "in der filiale zur abholung",
+]
+
 NO_UPDATE_HOURS = 48
 
 
@@ -76,6 +85,7 @@ def parse_tracking_response(data: dict) -> dict:
         "is_delivered": False,
         "is_problematic": False,
         "is_packstation": False,
+        "is_filiale": False,
         "events": [],
         "latest_location": "",
         "latest_description": "",
@@ -103,6 +113,14 @@ def parse_tracking_response(data: dict) -> dict:
         if kw in loc_lower or kw in desc_lower:
             result["is_packstation"] = True
             break
+
+    if not result["is_packstation"]:
+        for kw in FILIALE_KEYWORDS:
+            if kw in desc_lower or kw in loc_lower:
+                result["is_filiale"] = True
+                break
+        if not result["is_filiale"] and status_code == "available-for-pickup":
+            result["is_filiale"] = True
 
     if status_code in PROBLEM_STATUSES:
         result["is_problematic"] = True
@@ -135,8 +153,9 @@ def parse_tracking_response(data: dict) -> dict:
 def _extract_location(loc: dict) -> str:
     if not loc:
         return ""
+    addr = loc.get("address", {})
     parts = [
-        loc.get("address", {}).get("addressLocality", ""),
-        loc.get("address", {}).get("countryCode", ""),
+        addr.get("streetAddress", ""),
+        addr.get("addressLocality", ""),
     ]
     return ", ".join(p for p in parts if p)

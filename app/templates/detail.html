@@ -29,7 +29,14 @@
                 {% endif %}
             </div>
         </div>
-        <div style="text-align:right;">
+        <div style="text-align:right; display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+                <code id="tn-copy" style="font-size:12px; background:var(--light); padding:4px 8px; border-radius:4px; cursor:pointer;"
+                      onclick="copyTN(this)" title="Klicken zum Kopieren">{{ shipment.tracking_number }}</code>
+                <a href="https://geschaeftskunden.dhl.de/"
+                   target="_blank" rel="noopener"
+                   class="btn btn-outline btn-sm">🔗 DHL GKP öffnen</a>
+            </div>
             {% if shipment.pdf_filename %}
                 <a href="{{ url_for('download_pdf', filename=shipment.pdf_filename) }}"
                    class="btn btn-yellow">📄 PDF herunterladen</a>
@@ -76,7 +83,7 @@
             <ul class="timeline">
                 {% for ev in events %}
                 <li class="{% if loop.first %}latest{% endif %} {% if 'failure' in (ev.status_code or '') or 'returned' in (ev.status_code or '') %}problem{% endif %}">
-                    <div class="tl-time">{{ ev.event_time[:16] if ev.event_time else '–' }}</div>
+                    <div class="tl-time">{{ ev.event_time[:16].replace('T', ' ') if ev.event_time else '–' }}</div>
                     <div class="tl-desc">{{ ev.description or '–' }}</div>
                     {% if ev.location %}
                     <div class="tl-loc">📌 {{ ev.location }}</div>
@@ -101,7 +108,10 @@
                 <span style="margin-left:8px; font-size:12px; color:#888;">oder neues PDF hochladen:</span>
             {% else %}
                 <p style="color:#999; font-size:13px; margin-bottom:12px;">
-                    Noch kein PDF hochgeladen. Lade den Sendungsnachweis aus dem DHL Geschäftskundenportal herunter und speichere ihn hier.
+                    Noch kein PDF hochgeladen. Lade den Sendungsnachweis aus dem
+                    <a href="https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={{ shipment.tracking_number }}"
+                       target="_blank" rel="noopener" style="color:var(--info);">DHL Sendungsverfolgung</a>
+                    herunter und speichere ihn hier.
                 </p>
             {% endif %}
             <form method="POST" action="{{ url_for('upload_pdf', tracking_number=shipment.tracking_number) }}"
@@ -185,6 +195,14 @@
 <!-- Template-Daten (JS) -->
 <script>
 const templates = {{ templates | tojson }};
+
+function copyTN(el) {
+    navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+        const orig = el.textContent;
+        el.textContent = '✓ Kopiert!';
+        setTimeout(() => el.textContent = orig, 1500);
+    });
+}
 
 function loadTemplate(key) {
     const tpl = templates[key];

@@ -70,6 +70,7 @@ def poll_dhl():
             is_problematic=int(parsed["is_problematic"]),
             is_delivered=int(parsed["is_delivered"]),
             is_packstation=int(parsed["is_packstation"]),
+            is_filiale=int(parsed["is_filiale"]),
         )
 
         # Events speichern

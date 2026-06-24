@@ -20,7 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.db import (
     init_db, get_all_shipments, get_shipment, get_events,
     set_pdf_filename, upsert_shipment, get_mail_log, log_mail,
-    get_packstation_arrival, get_transit_since, get_last_event_time
+    get_packstation_arrival, get_transit_since, get_last_event_time,
+    get_station_location, ALL_STATUSES, DEFAULT_STATUSES
 )
 from app.mailer import send_mail, get_template
 from app.wawi_reader import test_connection
@@ -88,10 +89,12 @@ def logout():
 @app.route("/")
 @login_required
 def dashboard():
-    status_filter = request.args.get("filter", "all")
-    valid_filters = {"all", "active", "problematic", "packstation", "delivered", "transit", "pre-transit", "unknown"}
-    if status_filter not in valid_filters:
-        status_filter = "all"
+    # Status-Toggles aus URL lesen (Standard: DEFAULT_STATUSES)
+    show_param = request.args.get("show", "")
+    if show_param:
+        show_statuses = [s for s in show_param.split(",") if s in ALL_STATUSES]
+    else:
+        show_statuses = list(DEFAULT_STATUSES)
 
     valid_periods = {"today", "yesterday", "this_week", "last_7", "last_30"}
     period = request.args.get("period", "")
@@ -101,18 +104,17 @@ def dashboard():
     search = request.args.get("search", "").strip()
 
     shipments = get_all_shipments(
-        filter_status=None if status_filter == "all" else status_filter,
+        show_statuses=show_statuses,
         period=period or None,
         search=search or None,
     )
 
-    # Zähler immer ohne Zeitraum/Suche (Gesamtübersicht)
-    all_ships = get_all_shipments()
+    # Zähler immer ohne Filter (Gesamtübersicht)
+    all_ships = get_all_shipments(show_statuses=ALL_STATUSES)
     counts = {
-        "all":          len(all_ships),
-        "active":       sum(1 for s in all_ships if not s["is_delivered"]),
         "problematic":  sum(1 for s in all_ships if s["is_problematic"]),
         "packstation":  sum(1 for s in all_ships if s["is_packstation"] and not s["is_delivered"]),
+        "filiale":      sum(1 for s in all_ships if s["is_filiale"] and not s["is_delivered"]),
         "delivered":    sum(1 for s in all_ships if s["is_delivered"]),
         "transit":      sum(1 for s in all_ships if s["current_status"] == "transit"),
         "pre-transit":  sum(1 for s in all_ships if s["current_status"] == "pre-transit"),
@@ -122,11 +124,17 @@ def dashboard():
     # Packstation-Tage berechnen
     packstation_days = {}
     transit_days = {}
-    stale_hours = {}   # Sendungen ohne Update seit >48h
+    stale_hours = {}
+    station_locations = {}  # Adresse der Packstation / Filiale
 
     for s in shipments:
         tn = s["tracking_number"]
         now = datetime.now()
+
+        if s["is_packstation"] or s["is_filiale"]:
+            loc = get_station_location(tn)
+            if loc:
+                station_locations[tn] = loc
 
         if s["is_packstation"] and not s["is_delivered"]:
             arrival = get_packstation_arrival(tn)
@@ -156,13 +164,15 @@ def dashboard():
 
     return render_template("dashboard.html",
                            shipments=shipments,
-                           current_filter=status_filter,
+                           show_statuses=show_statuses,
+                           all_statuses=ALL_STATUSES,
                            current_period=period,
                            current_search=search,
                            counts=counts,
                            packstation_days=packstation_days,
                            transit_days=transit_days,
-                           stale_hours=stale_hours)
+                           stale_hours=stale_hours,
+                           station_locations=station_locations)
 
 
 # ── Sendungs-Detail ───────────────────────────────────────────────────────────
